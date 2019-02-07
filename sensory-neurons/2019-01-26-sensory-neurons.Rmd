@@ -98,7 +98,7 @@ set.seed(1000)
 sce["Ttll1", ]
 # Using irlba to set up the t-SNE, for speed.
 osce <- runPCA(sce) # [dec_sce$Gene[1:5000], ])
-osce <- runTSNE(osce, use_dimred="PCA")
+osce <- runTSNE(osce,  perplexity = 15) # use_dimred="PCA", 
 plotTSNE(osce, colour_by="Picking sessions") # + ggtitle("by tumor")
 plotTSNE(osce, colour_by="Library")
 plotTSNE(osce, colour_by="Sex")
