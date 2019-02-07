@@ -138,7 +138,7 @@ TSNEPlot(trt.combined, do.return = T, pt.size = 0.5, group.by = "cell_type")
 
 # Finding marker genes 
 
-## Unsupervised clustering 
+## Unsupervised clustering to identify macrophages
 
 Let's do a quick clustering to identify macrophge population 
 using a small resolution of 0.25
@@ -167,6 +167,8 @@ TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "cell_type
 TSNEPlot(trt.combined.macro, do.label = T, do.return = T, pt.size = 0.5)
 ```
 
+### Sub-clustering (resolution of 0.25)
+
 Ok, good. Now's let's do some clustering at a 
 small resolution again 0.25 (but only on a 
 subset of the cells) because we are interested 
@@ -190,7 +192,7 @@ TSNEPlot(trt.combined.macro, do.label = T, do.return = T, pt.size = 0.5)
 This one looks like there are 4 clusters. 
 For now let's go with the two. 
 
-## Differential expression 
+#### Differential expression (resolution of 0.25)
 
 Next, we will identify marker genes for 
 cluster 0 and 1 using the resolution of 0.25
@@ -200,7 +202,7 @@ trt.combined.macro <- FindClusters(trt.combined.macro, reduction.type = "cca.ali
     resolution = 0.25, dims.use = 1:25, force.recalc=TRUE)
 ```
 
-### Cluster 0
+#### Cluster 0
 
 ```{r}
 clust0.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 0,
@@ -220,11 +222,11 @@ dim(dat) # 75 DE genes
 head(dat, 20)
 
 write.csv(dat, file.path(workingPath, 
-                         "markergenes/seurat_macrophagesonly_clust0markers.csv"), 
+                         "markergenes/res25/seurat_macrophagesonly_clust0markers.csv"), 
           quote = FALSE, row.names=TRUE)
 
 pdf(file.path(workingPath, 
-              "figs/seurat_macrophagesonly_clust0markers.pdf"), 
+              "figs/res25/seurat_macrophagesonly_clust0markers.pdf"), 
     width=12, height=12)
 FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:20], 
             min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)
@@ -233,7 +235,7 @@ dev.off()
 ```
 
 
-### Cluster 1
+#### Cluster 1
 
 ```{r}
 clust1.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 1,
@@ -253,11 +255,165 @@ dim(dat) # 148 DE genes
 head(dat, 20)
 
 write.csv(dat, file.path(workingPath, 
-                         "markergenes/seurat_macrophagesonly_clust1markers.csv"), 
+                         "markergenes/res25/seurat_macrophagesonly_clust1markers.csv"), 
           quote = FALSE, row.names=TRUE)
 
 pdf(file.path(workingPath, 
-              "figs/seurat_macrophagesonly_clust1markers.pdf"), 
+              "figs/res25/seurat_macrophagesonly_clust1markers.pdf"), 
+    width=12, height=12)
+FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:20], 
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)
+dev.off()
+
+```
+
+
+
+### Sub-clustering (resolution of 0.40)
+
+Above we considered another resolution of 
+0.40, which looked like there might be four 
+clusters. Let's explore that.
+
+```{r}
+trt.combined.macro <- FindClusters(trt.combined.macro, reduction.type = "cca.aligned", 
+    resolution = 0.40, dims.use = 1:25, force.recalc=TRUE)
+TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "treatment")
+TSNEPlot(trt.combined.macro, do.label = T, do.return = T, pt.size = 0.5)
+```
+
+```{r}
+saveRDS(trt.combined.macro, file = file.path(dataPath,"Kulkarni_sce_res40.rds"))
+```
+
+
+#### Differential expression (resolution of 0.40)
+
+Next, we will identify marker genes for 
+cluster 0, 1, 2, 3 using the resolution of 0.40
+
+#### Cluster 0
+
+```{r}
+clust0.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 0,
+                                       grouping.var = "treatment", 
+                                       print.bar = FALSE)
+head(clust0.markers)
+
+## remove genes with negative relationship
+dat <- clust0.markers[clust0.markers$EnzymeTL_avg_logFC > 0 & 
+                      clust0.markers$EnzymeTH_avg_logFC > 0 & 
+                      clust0.markers$EnzymeTL_p_val_adj < 0.05 & 
+                      clust0.markers$EnzymeTH_p_val_adj < 0.05, ]
+dat <- dat[order(rowMeans(dat[, c("EnzymeTL_avg_logFC", "EnzymeTH_avg_logFC")]), 
+      decreasing = TRUE),]
+dim(dat) # 53 DE genes 
+head(dat, 20)
+
+write.csv(dat, file.path(workingPath, 
+                         "markergenes/res40/seurat_macrophagesonly_clust0markers.csv"), 
+          quote = FALSE, row.names=TRUE)
+
+pdf(file.path(workingPath, 
+              "figs/res40/seurat_macrophagesonly_clust0markers.pdf"), 
+    width=12, height=12)
+FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:20], 
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)
+dev.off()
+
+```
+
+
+#### Cluster 1
+
+```{r}
+clust1.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 1,
+                                       grouping.var = "treatment", 
+                                       print.bar = FALSE)
+head(clust1.markers)
+
+## remove genes with negative relationship
+dat <- clust1.markers[clust1.markers$EnzymeTL_avg_logFC > 0 & 
+                      clust1.markers$EnzymeTH_avg_logFC > 0 & 
+                      clust1.markers$EnzymeTL_p_val_adj < 0.05 & 
+                      clust1.markers$EnzymeTH_p_val_adj < 0.05,]
+dat <- dat[order(rowMeans(dat[, c("EnzymeTL_avg_logFC", "EnzymeTH_avg_logFC")]), 
+      decreasing = TRUE),]
+dim(dat) # 141 DE genes 
+head(dat, 20)
+
+write.csv(dat, file.path(workingPath, 
+                         "markergenes/res40/seurat_macrophagesonly_clust1markers.csv"), 
+          quote = FALSE, row.names=TRUE)
+
+pdf(file.path(workingPath, 
+              "figs/res40/seurat_macrophagesonly_clust1markers.pdf"), 
+    width=12, height=12)
+FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:20], 
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)
+dev.off()
+
+```
+
+
+
+#### Cluster 2
+
+```{r}
+clust2.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 2,
+                                       grouping.var = "treatment", 
+                                       print.bar = FALSE)
+head(clust2.markers)
+
+## remove genes with negative relationship
+dat <- clust2.markers[clust2.markers$EnzymeTL_avg_logFC > 0 & 
+                      clust2.markers$EnzymeTH_avg_logFC > 0 & 
+                      clust2.markers$EnzymeTL_p_val_adj < 0.05 & 
+                      clust2.markers$EnzymeTH_p_val_adj < 0.05,]
+dat <- dat[order(rowMeans(dat[, c("EnzymeTL_avg_logFC", "EnzymeTH_avg_logFC")]), 
+      decreasing = TRUE),]
+dim(dat) # 4 DE genes  (really 1)
+head(dat, 20)
+
+write.csv(dat, file.path(workingPath, 
+                         "markergenes/res40/seurat_macrophagesonly_clust2markers.csv"), 
+          quote = FALSE, row.names=TRUE)
+
+pdf(file.path(workingPath, 
+              "figs/res40/seurat_macrophagesonly_clust2markers.pdf"), 
+    width=5, height=5)
+FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:4], 
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)
+dev.off()
+
+```
+
+
+
+#### Cluster 3
+
+```{r}
+clust3.markers <- FindConservedMarkers(trt.combined.macro, ident.1 = 3,
+                                       grouping.var = "treatment", 
+                                       print.bar = FALSE)
+head(clust3.markers)
+
+## remove genes with negative relationship
+dat <- clust3.markers[clust3.markers$EnzymeTL_avg_logFC > 0 & 
+                      clust3.markers$EnzymeTH_avg_logFC > 0 & 
+                      clust3.markers$EnzymeTL_p_val_adj < 0.05 & 
+                      clust3.markers$EnzymeTH_p_val_adj < 0.05,]
+dat <- dat[order(rowMeans(dat[, c("EnzymeTL_avg_logFC", "EnzymeTH_avg_logFC")]), 
+      decreasing = TRUE),]
+dim(dat) # XXXX DE genes 
+head(dat, 20)
+
+write.csv(dat, file.path(workingPath, 
+                         "markergenes/res40/seurat_macrophagesonly_clust3markers.csv"), 
+          quote = FALSE, row.names=TRUE)
+
+pdf(file.path(workingPath, 
+              "figs/res40/seurat_macrophagesonly_clust3markers.pdf"), 
     width=12, height=12)
 FeaturePlot(object = trt.combined.macro, features.plot = row.names(dat)[1:20], 
             min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5)

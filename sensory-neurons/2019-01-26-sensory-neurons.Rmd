@@ -1,0 +1,152 @@
+---
+title: "Sensory Neurons"
+author: "Stephanie Hicks"
+output: 
+    html_document:
+        toc: true
+        toc_float: true
+        highlight: tango
+        number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+```
+
+# Preprocessing and Normalization
+
+Load packages
+```{r loadpackages, message=FALSE, warning=FALSE, eval=TRUE}
+scdataPath <- "/users/shicks1/data/single-cellRDS" 
+dataPath <- "/users/shicks1/data/kulkarni"
+workingPath <- "/users/shicks1/projects/kulkarni"
+setwd(workingPath)
+```
+
+## Create `SingleCellExperiment` object
+
+
+Load data and create a `SingleCellExperiment` object. 
+Remove genes not expressed in any cell. Extract `mgi_symbol` 
+gene name`. 
+```{r sceobject, eval=FALSE}
+library(SingleCellExperiment)
+load(file.path(scdataPath, "2015-Usoskin-eset.RData")) # CellDataSet class in monocle
+
+# Convert to a SingleCellExperiment
+sce <- SingleCellExperiment(assays = list(counts = exprs(eset)), 
+                            colData = pData(eset), 
+                            rowData = data.frame(Gene = fData(eset)$X1))
+```
+
+Quality control and normalization
+
+```{r}
+library(scater)
+library(scran)
+# Remove genes not expressed in any cell
+keep_feature <- rowSums(counts(sce) > 0) > 0
+table(keep_feature)
+sce <- sce[keep_feature, ]
+
+# calculate QC metrics
+sce <- calculateQCMetrics(sce)
+head(colData(sce))
+
+low_lib_sce <- isOutlier(sce$log10_total_counts, type="lower", nmad=3)
+low_genes_sce <- isOutlier(sce$log10_total_features_by_counts, type="lower", nmad=3)
+data.frame(LowLib=sum(low_lib_sce), LowNgenes=sum(low_genes_sce))
+sce <- sce[,!(low_lib_sce | low_genes_sce)]
+
+# normalization 
+sce <- computeSumFactors(sce)
+summary(sizeFactors(sce))
+
+sce <- normalize(sce)
+rowData(sce)$Gene <- as.character(rowData(sce)$Gene)
+saveRDS(sce, file = file.path(dataPath,"sce-sensory-neurons.rds"))
+```
+
+
+## Filter for highly variable genes
+
+```{r}
+sce <- readRDS(file.path(dataPath,"sce-sensory-neurons.rds"))
+rownames(sce) <- rowData(sce)$Gene
+```
+
+```{r}
+library(scran)
+fit_sce <- trendVar(sce, use.spikes=FALSE) 
+dec_sce <- decomposeVar(sce, fit_sce)
+dec_sce$Gene <- rowData(sce)$Gene
+dec_sce <- dec_sce[order(dec_sce$bio, decreasing = TRUE), ]
+
+plot(dec_sce$mean, dec_sce$total, 
+     xlab="Mean log-expression", 
+     ylab="Variance of log-expression", pch=16)
+curve(fit_sce$trend(x), col="dodgerblue", add=TRUE)
+```
+
+
+# Data visualization
+
+```{r}
+library(scater)
+set.seed(1000)
+
+sce["Ttll1", ]
+# Using irlba to set up the t-SNE, for speed.
+osce <- runPCA(sce) # [dec_sce$Gene[1:5000], ])
+osce <- runTSNE(osce, use_dimred="PCA")
+plotTSNE(osce, colour_by="Picking sessions") # + ggtitle("by tumor")
+plotTSNE(osce, colour_by="Library")
+plotTSNE(osce, colour_by="Sex")
+p_l1 <- plotTSNE(osce, colour_by="Level 1")
+p_l2 <- plotTSNE(osce, colour_by="Level 2")
+p_l3 <- plotTSNE(osce, colour_by="Level 3")
+```
+
+
+```{r}
+# Myh6, Myh7, Myh11, Arc, Fos, Myc, Jun, Egr1
+
+c("Myh6", "Myh7", "Myh11", "Arc", "Fos", "Myc", "Jun", "Egr1") %in% 
+     dec_sce$Gene[1:15000]
+p_myh6 <- plotTSNE(osce, colour_by = "Myh6") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Myh6")
+p_myh7 <- plotTSNE(osce, colour_by = "Myh7") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Myh7")
+p_myh11 <- plotTSNE(osce, colour_by = "Myh11") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Myh11")
+p_arc <- plotTSNE(osce, colour_by = "Arc") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Arc")
+p_fos <- plotTSNE(osce, colour_by = "Fos") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Fos")
+p_myc <- plotTSNE(osce, colour_by = "Myc") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Myc")
+p_jun <- plotTSNE(osce, colour_by = "Jun") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Jun")
+p_egr1 <- plotTSNE(osce, colour_by = "Egr1") + 
+  scale_fill_gradient2(low='red', high ='blue') + ggtitle("Egr1")
+
+```
+
+```{r}
+library(cowplot)
+
+pdf("figs/sens-neurons.pdf", width=6, height=4)
+p_l1
+p_l2
+p_l3
+p_myh6 
+p_myh7 
+p_myh11
+p_arc
+p_fos
+p_myc
+p_jun
+p_egr1 
+dev.off()
+```
+
