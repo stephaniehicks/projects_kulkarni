@@ -150,3 +150,45 @@ p_egr1
 dev.off()
 ```
 
+# Figure for R01 grant 
+```{r}
+library(ssizeRNA)
+nGenes <- 1e3
+zz <- c(seq(10, 50, by = 10), 75, 100, 150)
+fdrate = c(0.05, 0.10)
+pow = array(dim = c(length(zz), length(fdrate)))
+for(i in 1:length(zz)){
+    m <- zz[i]                   ## sample size per treatment group
+    mu <- rgamma(nGenes, 1, scale = 5)  ## mean counts in control group for all genes 
+    disp <- rgamma(nGenes, .1, scale = 1)               ## dispersion for all genes
+    logfc <- 2         ## log fold change for DE genes
+
+    for(j in 1:length(fdrate)){
+        powOut <- check.power(nGenes = nGenes, pi0 = 0.90, m = m, mu = mu, 
+                      disp = disp, logfc, up = 0.5, replace = TRUE, 
+                      fdr = fdrate[j], sims = 50)
+        pow[i, j] <- powOut$pow_bh_ave
+        print(paste("i =", i, ", j =", j, Sys.time()))
+    }
+} 
+
+colnames(pow) = paste("FDR", fdrate, sep = "_")
+
+library(tidyr)
+library(ggplot2)
+library(cowplot)
+dat = data.frame("sample_size" = zz, pow)
+dat = gather(dat, key = FDR, value = power, -sample_size)
+p2 <- ggplot(dat, aes(x = sample_size, y = power, color = FDR)) + 
+  geom_point(size = 3) + geom_line() + 
+  scale_color_discrete(labels = c("0.05", "0.10")) +
+  ggtitle("Power versus sample size for\ncelltype discovery using scRNAseq data") +
+  xlab("Sample size (cells)") + ylab("Power") 
+pdf("/users/shicks1/projects/kulkarni/figs/2019-02-07-power-analysis.pdf", 
+    height = 5, width = 5)
+plot_grid(p2)
+dev.off()
+
+```
+
+
