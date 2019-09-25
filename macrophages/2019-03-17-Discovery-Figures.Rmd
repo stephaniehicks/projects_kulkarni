@@ -150,9 +150,8 @@ for (i in 0:10) {
 }
 ```
 
-For 2018-05-01-SPARC figure
+For 2019-03-17-Discovery figure
 ```{r}
-
 p1 <- TSNEPlot(trt.combined, do.label = T, do.return = T, pt.size = 0.5, 
                no.legend = TRUE, label.size= 4,
                plot.title = "scRNA-Seq Analysis of 4477 cells from LM-MP") + 
@@ -180,14 +179,66 @@ p4 <- p4$Cd163 + xlab("t-SNE Dimension 1") + ylab("t-SNE Dimension 2") +
         plot.title = element_text(size=16, face="plain")) + 
   ggtitle("Macrophage Population 2 (Gene: Cd163)")
 
+p5 <- FeaturePlot(object = trt.combined, features.plot = c("Irak1"), do.return=TRUE,
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5) 
+p5 <- p5$Irak1 + xlab("t-SNE Dimension 1") + ylab("t-SNE Dimension 2") + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=16), 
+        plot.title = element_text(size=16, face="plain")) + 
+  ggtitle("Gene: Irak1")
+
+
 fig <- ggdraw() + 
     draw_plot(p1, x = 0, y = .5, width = .50, height = .5) +
-    draw_plot(p2, x = .50, y = .5, width = .5, height = .5) +
-    draw_plot(p3, x = 0, y = 0, width = .5, height = .5) +
+    draw_plot(p3, x = .50, y = .5, width = .5, height = .5) +
+    draw_plot(p5, x = 0, y = 0, width = .5, height = .5) +
     draw_plot(p4, x = .5, y = 0, width = .5, height = .5) +
     draw_plot_label(label = LETTERS[1:4], size = 25,
                     x = c(0, 0.5, 0, 0.5), y = c(1, 1, 0.5, 0.5))
-pdf(file.path(workingPath, "2018-05-01-SPARC-Figure-celltype.pdf"), width=12, height=10)
+pdf(file.path(workingPath, "2019-03-17-Discovery-Figure-celltype.pdf"), width=12, height=10)
 print(fig)
 dev.off()
+```
+
+
+2019-03-29 Discovery figure 
+
+Looks like the macrophages are labeled as the `0` 
+population. Next, filter for only macrophages and 
+create a separate Seurat object
+```{r}
+trt.combined.macro <- SubsetData(trt.combined, 
+           cells.use = trt.combined@cell.names[trt.combined@meta.data$res.0.25 == 0])
+```
+
+Visualize T-SNE
+```{r}
+trt.combined.macro <- RunTSNE(trt.combined.macro, reduction.use = "cca.aligned", dims.use = 1:25, 
+    do.fast = T)
+TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "treatment")
+TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "cell_type")
+TSNEPlot(trt.combined.macro, do.label = T, do.return = T, pt.size = 0.5)
+```
+
+
+```{r}
+p1 <- FeaturePlot(object = trt.combined.macro, features.plot = c("Ccr2"), do.return=TRUE,
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5) 
+p1 <- p1$Ccr2 + xlab("t-SNE Dimension 1") + ylab("t-SNE Dimension 2") + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=16), 
+        plot.title = element_text(size=16, face="plain")) + 
+  ggtitle("Macrophage Population 1\n(Gene: Ccr2)")
+
+p2 <- FeaturePlot(object = trt.combined.macro, features.plot = c("Cd163"), do.return=TRUE,
+            min.cutoff = "q9", cols.use = c("lightgrey", "blue"), pt.size = 0.5) 
+p2 <- p2$Cd163 + xlab("t-SNE Dimension 1") + ylab("t-SNE Dimension 2") + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=16), 
+        plot.title = element_text(size=16, face="plain")) + 
+  ggtitle("Macrophage Population 2\n(Gene: Cd163)")
+
+library(cowplot)
+fig <- plot_grid(p1, p2, labels = LETTERS[1:2], label_size = 20)
+pdf(file.path(workingPath, "2019-03-29-Discovery-Figure-celltype.pdf"), width=8, height=4)
+print(fig)
+dev.off()
+
 ```

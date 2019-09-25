@@ -1,0 +1,50 @@
+---
+title: "DE genes for chronic constipation"
+author: Stephanie Hicks
+date: "9/25/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+counts <- readr::read_tsv("~/Downloads/GSE101968_rc_h.sapiens_hg19_tophat2.txt")
+gene_names <- counts$gene_id
+counts <- as.matrix(counts[,-1])
+rownames(counts) <- gene_names
+
+condition <- factor(rep(c("lind_90","lind_91"),each=3))
+model.matrix(~ condition)
+
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = data.frame(condition = condition),
+                              design = ~ condition)
+dds
+
+keep <- rowSums(counts(dds)) >= 10
+dds <- dds[keep,]
+```
+
+```{r}
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+res <- results(dds, name="condition_lind_91_vs_lind_90")
+# shrink log fold changes association with condition:
+res <- lfcShrink(dds, coef="condition_lind_91_vs_lind_90", type="apeglm")
+summary(res)
+     
+resUp <- res[res$log2FoldChange > 0, ]
+as.data.frame(resUp[order(resUp$pvalue), ][1:30,])
+
+resDown <- res[res$log2FoldChange < 0, ]
+as.data.frame(resDown[order(resDown$pvalue), ][1:30,])
+
+sum(res$padj < 0.1, na.rm = TRUE)
+
+plotMA(res)
+```
+

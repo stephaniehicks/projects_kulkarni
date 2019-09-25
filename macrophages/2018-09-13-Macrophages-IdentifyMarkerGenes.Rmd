@@ -146,7 +146,6 @@ using a small resolution of 0.25
 trt.combined <- FindClusters(trt.combined, reduction.type = "cca.aligned", 
     resolution = 0.25, dims.use = 1:25, force.recalc=TRUE)
 TSNEPlot(trt.combined, do.label = T, do.return = T, pt.size = 0.5)
-
 ```
 
 Looks like the macrophages are labeled as the `0` 
@@ -157,7 +156,6 @@ trt.combined.macro <- SubsetData(trt.combined,
            cells.use = trt.combined@cell.names[trt.combined@meta.data$res.0.25 == 0])
 ```
 
-
 Visualize T-SNE
 ```{r}
 trt.combined.macro <- RunTSNE(trt.combined.macro, reduction.use = "cca.aligned", dims.use = 1:25, 
@@ -166,6 +164,7 @@ TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "treatment
 TSNEPlot(trt.combined.macro, do.return = T, pt.size = 0.5, group.by = "cell_type")
 TSNEPlot(trt.combined.macro, do.label = T, do.return = T, pt.size = 0.5)
 ```
+
 
 ### Sub-clustering (resolution of 0.25)
 
